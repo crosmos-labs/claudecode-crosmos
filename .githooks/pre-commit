@@ -1,0 +1,9 @@
+#!/bin/sh
+# Keep the committed bundle (plugin/scripts/crosmos.cjs) in sync with src/.
+# Rebuilds and re-stages it whenever a commit touches source or build config,
+# so a stale bundle can never be committed.
+if git diff --cached --name-only | grep -qE '^(src/|build\.mjs|package\.json|tsconfig\.json)'; then
+  echo "crosmos: rebuilding bundle…"
+  npm run build || { echo "crosmos: build failed — aborting commit"; exit 1; }
+  git add plugin/scripts/crosmos.cjs
+fi
