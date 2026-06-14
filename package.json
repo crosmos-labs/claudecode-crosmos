@@ -1,0 +1,20 @@
+{
+    "name": "@crosmos/claude",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Crosmos memory for Claude Code — automatic recall and ingest",
+    "type": "module",
+    "scripts": {
+        "build": "node build.mjs",
+        "typecheck": "tsc --noEmit",
+        "lint": "biome check",
+        "format": "biome check --write"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^2.5.0",
+        "@types/node": "^22.0.0",
+        "crosmos": "^0.1.0",
+        "esbuild": "^0.24.0",
+        "typescript": "^5.6.0"
+    }
+}

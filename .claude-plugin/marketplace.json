@@ -1,0 +1,19 @@
+{
+  "name": "crosmos",
+  "description": "crosmos memory for claude code — automatic recall and capture across sessions",
+  "owner": {
+    "name": "Crosmos",
+    "email": "support@crosmos.dev"
+  },
+  "plugins": [
+    {
+      "name": "crosmos",
+      "source": "./plugin",
+      "description": "automatic, persistent memory for claude code, powered by crosmos",
+      "category": "productivity",
+      "author": {
+        "name": "Crosmos"
+      }
+    }
+  ]
+}

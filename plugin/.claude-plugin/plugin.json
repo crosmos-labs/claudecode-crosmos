@@ -1,0 +1,14 @@
+{
+  "name": "crosmos",
+  "displayName": "crosmos",
+  "version": "0.1.0",
+  "description": "automatic, persistent memory for claude code, powered by crosmos",
+  "author": {
+    "name": "Crosmos",
+    "email": "support@crosmos.dev"
+  },
+  "homepage": "https://crosmos.dev",
+  "repository": "https://github.com/crosmos-labs/claude-crosmos",
+  "license": "MIT",
+  "keywords": ["claude-code", "plugin", "crosmos", "memory", "context"]
+}
