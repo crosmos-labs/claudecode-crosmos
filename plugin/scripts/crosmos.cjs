@@ -1624,7 +1624,7 @@ async function status() {
     const spaceId = await resolveSpaceId(client);
     process.stdout.write(
       spaceId ? `connected \u2014 space ${spaceId}
-` : "api key ok, no space found\n"
+` : "api key found, no space found\n"
     );
   } catch (e) {
     debug("status error", e);

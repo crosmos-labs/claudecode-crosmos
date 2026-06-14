@@ -47,7 +47,7 @@ async function status(): Promise<void> {
     try {
         const spaceId = await resolveSpaceId(client);
         process.stdout.write(
-            spaceId ? `connected — space ${spaceId}\n` : "api key ok, no space found\n"
+            spaceId ? `connected — space ${spaceId}\n` : "api key found, no space found\n"
         );
     } catch (e) {
         debug("status error", e);
