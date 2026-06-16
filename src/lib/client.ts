@@ -3,9 +3,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import Crosmos from "crosmos";
 
+const credentialsPath = join(homedir(), ".crosmos", "credentials.json");
+
 function readCredentials(): { api_key?: string; base_url?: string } {
     try {
-        return JSON.parse(readFileSync(join(homedir(), ".crosmos", "credentials.json"), "utf8"));
+        return JSON.parse(readFileSync(credentialsPath, "utf8"));
     } catch {
         return {};
     }

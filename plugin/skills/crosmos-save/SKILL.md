@@ -23,14 +23,22 @@ Persist durable facts to Crosmos memory. Routine conversation is already capture
 - Something already in memory (unless it changed).
 
 ## How to save
-Write each memory as **one atomic, self-contained sentence** — use names, not pronouns — then run it. Save distinct facts as separate calls.
+Write each memory as **one atomic, self-contained note** — use names, not pronouns — then run it. Save distinct facts as separate calls.
+
+Start the note with exactly one typed prefix:
+- `[PREFERENCE]` for how the user likes work done.
+- `[DECISION]` for a durable choice; include a concise rationale when known.
+- `[CONVENTION]` for project/team rules or recurring workflow.
+- `[CORRECTION]` for replacing stale or wrong remembered context.
+- `[NOTE]` for other durable context or reusable learnings.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/crosmos.cjs" save "<fact>"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/crosmos.cjs" save "<typed memory>"
 ```
 
 Confirm briefly once saved. When unsure whether something is durable, prefer saving a concise version over losing it.
 
 ## Examples
-- "let's always deploy from the `release` branch" → save: `The user deploys this project from the release branch.`
+- "let's always deploy from the `release` branch" → save: `[CONVENTION] The user deploys this project from the release branch.`
+- "we chose Postgres because we need transactions" → save: `[DECISION] This project uses Postgres because transactional integrity matters.`
 - "thanks, that worked!" → save nothing (no durable fact).

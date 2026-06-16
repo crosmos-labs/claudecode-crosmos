@@ -1,6 +1,3 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { getClient } from "./lib/client.js";
 import { debug } from "./lib/debug.js";
 import { ingest } from "./memory/ingest.js";
@@ -25,23 +22,12 @@ async function readPayload(): Promise<HookPayload> {
     }
 }
 
-function setup(key: string): void {
-    const dir = join(homedir(), ".crosmos");
-    mkdirSync(dir, { recursive: true, mode: 0o700 });
-    const file = join(dir, "credentials.json");
-    let creds: { api_key?: string } = {};
-    try {
-        creds = JSON.parse(readFileSync(file, "utf8"));
-    } catch {}
-    creds.api_key = key;
-    writeFileSync(file, JSON.stringify(creds, null, 2), { mode: 0o600 });
-    process.stdout.write("api key saved to ~/.crosmos/credentials.json\n");
-}
-
 async function status(): Promise<void> {
     const client = getClient();
     if (!client) {
-        process.stdout.write("no api key — set CROSMOS_API_KEY or run /crosmos:setup <key>\n");
+        process.stdout.write(
+            "no api key — run `npx @crosmos/crosmos-mcp setup`, or set CROSMOS_API_KEY\n"
+        );
         return;
     }
     try {
@@ -58,11 +44,6 @@ async function status(): Promise<void> {
 async function main(): Promise<void> {
     const [cmd, ...rest] = process.argv.slice(2);
 
-    if (cmd === "setup") {
-        if (rest[0]) setup(rest[0]);
-        else process.stderr.write("usage: crosmos setup <api-key>\n");
-        return;
-    }
     if (cmd === "status") return status();
 
     const client = getClient();

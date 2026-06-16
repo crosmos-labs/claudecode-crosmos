@@ -1,11 +1,6 @@
 #!/usr/bin/env node
 "use strict";
 
-// src/main.ts
-var import_node_fs5 = require("node:fs");
-var import_node_os4 = require("node:os");
-var import_node_path7 = require("node:path");
-
 // src/lib/client.ts
 var import_node_fs = require("node:fs");
 var import_node_os = require("node:os");
@@ -1360,9 +1355,10 @@ Crosmos.UsageResource = UsageResource;
 Crosmos.Health = Health;
 
 // src/lib/client.ts
+var credentialsPath = (0, import_node_path.join)((0, import_node_os.homedir)(), ".crosmos", "credentials.json");
 function readCredentials() {
   try {
-    return JSON.parse((0, import_node_fs.readFileSync)((0, import_node_path.join)((0, import_node_os.homedir)(), ".crosmos", "credentials.json"), "utf8"));
+    return JSON.parse((0, import_node_fs.readFileSync)(credentialsPath, "utf8"));
   } catch {
     return {};
   }
@@ -1393,7 +1389,7 @@ function debug(...parts) {
 }
 
 // src/memory/ingest.ts
-var import_node_path4 = require("node:path");
+var import_node_path5 = require("node:path");
 
 // src/lib/config.ts
 var import_node_fs3 = require("node:fs");
@@ -1417,8 +1413,73 @@ function writeStore(store) {
   (0, import_node_fs3.writeFileSync)(storePath(), JSON.stringify(store, null, 2));
 }
 
+// src/lib/git.ts
+var import_node_child_process = require("node:child_process");
+var import_node_path4 = require("node:path");
+function gitBranch(cwd) {
+  try {
+    return (0, import_node_child_process.execFileSync)("git", ["branch", "--show-current"], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 1e3
+    }).trim();
+  } catch {
+    return "";
+  }
+}
+function gitRemote(cwd) {
+  try {
+    return (0, import_node_child_process.execFileSync)("git", ["remote", "get-url", "origin"], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 1e3
+    }).trim();
+  } catch {
+    return "";
+  }
+}
+function recentCommitSubjects(cwd, limit = 3) {
+  try {
+    const out = (0, import_node_child_process.execFileSync)("git", ["log", `-${limit}`, "--format=%s"], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 1e3
+    }).trim();
+    return out.split("\n").map((s) => s.trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+function repoId(cwd) {
+  const remote = gitRemote(cwd);
+  if (remote) {
+    return remote.replace(/^(https?:\/\/|git@|ssh:\/\/)/, "").replace(/^[^/]+@(?=[^/]+\/)/, "").replace(/\.git$/, "").replace(/:/g, "/").replace(/[^a-zA-Z0-9/_-]/g, "-").toLowerCase();
+  }
+  return (0, import_node_path4.basename)(cwd);
+}
+
 // src/lib/transcript.ts
 var import_node_fs4 = require("node:fs");
+
+// src/lib/redact.ts
+var SECRET_PATTERNS = [
+  /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
+  /\bBearer\s+[A-Za-z0-9._~+/=-]{20,}/gi,
+  /\b(csk|sk|pk)_[A-Za-z0-9._-]{16,}\b/g,
+  /\b[A-Za-z0-9._%+-]+:(?:[A-Za-z0-9._~+/=-]{20,})@/g,
+  /\b([A-Z0-9_]*(?:API[_-]?KEY|TOKEN|SECRET|PASSWORD|PASSWD)[A-Z0-9_]*)\s*=\s*["']?[^"'\s]{8,}["']?/gi
+];
+function redactSecrets(text) {
+  return SECRET_PATTERNS.reduce(
+    (redacted, pattern) => redacted.replace(pattern, "[REDACTED_SECRET]"),
+    text
+  );
+}
+
+// src/lib/transcript.ts
 var MAX_CHARS = 1500;
 var MAX_TURNS = 30;
 function readTurns(path2, sinceLine = 0) {
@@ -1442,7 +1503,8 @@ function readTurns(path2, sinceLine = 0) {
     }
     if (entry?.type !== "user" && entry?.type !== "assistant") continue;
     const content = extractText(entry.message?.content);
-    if (content) turns.push({ role: entry.type, content: content.slice(0, MAX_CHARS) });
+    if (content)
+      turns.push({ role: entry.type, content: redactSecrets(content).slice(0, MAX_CHARS) });
   }
   return { turns: turns.slice(-MAX_TURNS), lastLine };
 }
@@ -1493,33 +1555,23 @@ async function ingest(client, opts) {
     session_id: opts.sessionId,
     session_date: (/* @__PURE__ */ new Date()).toISOString(),
     messages: turns.map((t) => ({ role: t.role, content: t.content })),
-    meta: { source: "claude-code", project: (0, import_node_path4.basename)(opts.cwd) }
+    meta: {
+      source: "claude-code",
+      project: (0, import_node_path5.basename)(opts.cwd),
+      repo: repoId(opts.cwd),
+      branch: gitBranch(opts.cwd) || void 0
+    }
   });
   debug("ingest:", `turns=${turns.length}`, JSON.stringify(res));
   advance();
 }
 
 // src/memory/recall.ts
-var import_node_path5 = require("node:path");
-
-// src/lib/git.ts
-var import_node_child_process = require("node:child_process");
-function gitBranch(cwd) {
-  try {
-    return (0, import_node_child_process.execFileSync)("git", ["branch", "--show-current"], {
-      cwd,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-      timeout: 1e3
-    }).trim();
-  } catch {
-    return "";
-  }
-}
-
-// src/memory/recall.ts
+var import_node_path6 = require("node:path");
 var LIMIT = 6;
 var RECENCY_BIAS = 0.6;
+var MAX_MEMORY_CHARS = 500;
+var MAX_CONTEXT_CHARS = 3500;
 async function recall(client, cwd) {
   const spaceId = await resolveSpaceId(client);
   if (!spaceId) {
@@ -1537,7 +1589,9 @@ async function recall(client, cwd) {
   });
   debug("recall:", `query="${query}"`, `hits=${candidates?.length ?? 0}`);
   if (!candidates?.length) return "";
-  const lines = candidates.map((c) => `- ${c.content.trim()}`).join("\n");
+  const lines = capContext(
+    candidates.map((c) => `- ${truncate(c.content.trim(), MAX_MEMORY_CHARS)}`)
+  );
   return [
     "<crosmos-memory>",
     "Recalled context from past sessions. Reference it only when relevant \u2014 including indirect connections \u2014 but don't force it into your response or assume beyond what's stated.",
@@ -1547,10 +1601,17 @@ async function recall(client, cwd) {
   ].join("\n");
 }
 function buildQuery(cwd) {
-  const project = (0, import_node_path5.basename)(cwd);
+  const project = (0, import_node_path6.basename)(cwd);
   const topic = branchTopic(cwd);
-  const focus = topic ? ` ${topic}` : "";
-  return `recent work, decisions, and preferences for the ${project} project${focus}`;
+  const commits = recentCommitSubjects(cwd, 3).slice(0, 3);
+  const parts = [
+    "recent work, decisions, conventions, and preferences",
+    `${project} project`,
+    repoId(cwd),
+    topic,
+    ...commits
+  ].filter(Boolean);
+  return parts.join(" ").slice(0, 500);
 }
 function branchTopic(cwd) {
   const branch = gitBranch(cwd);
@@ -1558,19 +1619,44 @@ function branchTopic(cwd) {
   const words = branch.replace(/^[^/]+\//, "").replace(/[-_/]+/g, " ").trim();
   return /[a-z]{3,}/i.test(words) ? words : "";
 }
+function truncate(text, max) {
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 15).trimEnd()}... [truncated]`;
+}
+function capContext(lines) {
+  let out = "";
+  for (const line of lines) {
+    const next = out ? `${out}
+${line}` : line;
+    if (next.length > MAX_CONTEXT_CHARS) {
+      return `${out}
+- ... [more memories omitted]`.trim();
+    }
+    out = next;
+  }
+  return out;
+}
 
 // src/memory/save.ts
-var import_node_path6 = require("node:path");
+var import_node_path7 = require("node:path");
 async function save(client, text, cwd) {
   const spaceId = await resolveSpaceId(client);
   if (!spaceId) return "No memory space configured.";
+  const content = redactSecrets(text).trim();
+  if (!content) return "No memory content provided.";
   await client.sources.ingest({
     space_id: spaceId,
     sources: [
       {
-        content: text,
+        content,
         content_type: "text",
-        meta: { source: "claude-code", project: (0, import_node_path6.basename)(cwd) }
+        meta: {
+          source: "claude-code",
+          type: "manual_save",
+          project: (0, import_node_path7.basename)(cwd),
+          repo: repoId(cwd),
+          branch: gitBranch(cwd) || void 0
+        }
       }
     ]
   });
@@ -1601,23 +1687,12 @@ async function readPayload() {
     return {};
   }
 }
-function setup(key) {
-  const dir = (0, import_node_path7.join)((0, import_node_os4.homedir)(), ".crosmos");
-  (0, import_node_fs5.mkdirSync)(dir, { recursive: true, mode: 448 });
-  const file = (0, import_node_path7.join)(dir, "credentials.json");
-  let creds = {};
-  try {
-    creds = JSON.parse((0, import_node_fs5.readFileSync)(file, "utf8"));
-  } catch {
-  }
-  creds.api_key = key;
-  (0, import_node_fs5.writeFileSync)(file, JSON.stringify(creds, null, 2), { mode: 384 });
-  process.stdout.write("api key saved to ~/.crosmos/credentials.json\n");
-}
 async function status() {
   const client = getClient();
   if (!client) {
-    process.stdout.write("no api key \u2014 set CROSMOS_API_KEY or run /crosmos:setup <key>\n");
+    process.stdout.write(
+      "no api key \u2014 run `npx @crosmos/crosmos-mcp setup`, or set CROSMOS_API_KEY\n"
+    );
     return;
   }
   try {
@@ -1633,11 +1708,6 @@ async function status() {
 }
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
-  if (cmd === "setup") {
-    if (rest[0]) setup(rest[0]);
-    else process.stderr.write("usage: crosmos setup <api-key>\n");
-    return;
-  }
   if (cmd === "status") return status();
   const client = getClient();
   if (!client) {

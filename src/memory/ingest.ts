@@ -2,6 +2,7 @@ import { basename } from "node:path";
 import type Crosmos from "crosmos";
 import { readStore, writeStore } from "../lib/config.js";
 import { debug } from "../lib/debug.js";
+import { gitBranch, repoId } from "../lib/git.js";
 import { readTurns } from "../lib/transcript.js";
 import { resolveSpaceId } from "./space.js";
 
@@ -34,7 +35,12 @@ export async function ingest(
         session_id: opts.sessionId,
         session_date: new Date().toISOString(),
         messages: turns.map((t) => ({ role: t.role, content: t.content })),
-        meta: { source: "claude-code", project: basename(opts.cwd) },
+        meta: {
+            source: "claude-code",
+            project: basename(opts.cwd),
+            repo: repoId(opts.cwd),
+            branch: gitBranch(opts.cwd) || undefined,
+        },
     });
     debug("ingest:", `turns=${turns.length}`, JSON.stringify(res));
     advance();

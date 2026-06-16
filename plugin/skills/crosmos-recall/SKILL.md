@@ -18,12 +18,16 @@ Pull relevant memory before answering. When in doubt, search — missing context
 - It's a self-contained, generic factual or coding question with no user-specific dependency.
 
 ## How to search
+Convert the user's ask into a compact search query. Include relevant project, feature, file/module, time words, and memory type words such as `decision`, `preference`, `convention`, or `correction` when they fit.
+
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/crosmos.cjs" search "<query or keywords>"
 ```
 
-Weave relevant results into your answer naturally; ignore ones that don't fit. If nothing relevant returns, continue normally.
+Weave relevant results into your answer naturally; ignore ones that don't fit. If nothing relevant returns, continue normally unless the user explicitly asked what memory contains.
 
 ## Examples
-- "set up the linter like my other projects" → search `linter setup preferences` first.
+- "set up the linter like my other projects" → search `linter setup preference convention` first.
+- "why did we pick Postgres?" → search `database postgres decision rationale`.
+- "what did I work on yesterday in auth?" → search `auth yesterday recent work`.
 - "what's the syntax for a Python list comprehension?" → no search (generic, self-contained).

@@ -8,7 +8,7 @@
     "email": "support@crosmos.dev"
   },
   "homepage": "https://crosmos.dev",
-  "repository": "https://github.com/crosmos-labs/claude-crosmos",
+  "repository": "https://github.com/crosmos-labs/claudecode-crosmos",
   "license": "MIT",
   "keywords": ["claude-code", "plugin", "crosmos", "memory", "context"]
 }

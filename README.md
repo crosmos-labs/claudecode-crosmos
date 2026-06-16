@@ -22,18 +22,23 @@ to type.
 ## Install
 
 ```sh
-/plugin marketplace add crosmos-labs/claude-crosmos
+/plugin marketplace add crosmos-labs/claudecode-crosmos
 /plugin install crosmos
 ```
 
-Then save your api key once:
+## Authentication
+
+The plugin reads your crosmos key from `~/.crosmos/credentials.json` — the same file the crosmos
+CLI and console use, so if you've set up crosmos anywhere, it just works. To set it up, run this
+**in your terminal** (not in the Claude session):
 
 ```sh
-/crosmos:setup csk_your_key
+npx @crosmos/crosmos-mcp setup
 ```
 
-The key is saved to `~/.crosmos/credentials.json` (reused if you've set up crosmos before), or
-you can export `CROSMOS_API_KEY` in your shell instead.
+Or grab a key from [console.crosmos.dev](https://console.crosmos.dev) and either drop it in
+`~/.crosmos/credentials.json` or export `CROSMOS_API_KEY`. Your key is entered in your terminal,
+never in the Claude conversation.
 
 ## How it works
 
@@ -54,8 +59,7 @@ machine, and the hooks **fail open**, so memory being unavailable never blocks y
 ## Commands
 
 ```sh
-/crosmos:status          # show api key, resolved space, and connectivity
-/crosmos:setup <key>     # save your crosmos api key
+/crosmos:status          # show api key status, resolved space, and connectivity
 ```
 
 ## Configuration

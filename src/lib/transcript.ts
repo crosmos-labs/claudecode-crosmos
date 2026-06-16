@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { redactSecrets } from "./redact.js";
 
 export interface Turn {
     role: "user" | "assistant";
@@ -31,7 +32,8 @@ export function readTurns(path: string, sinceLine = 0): { turns: Turn[]; lastLin
         }
         if (entry?.type !== "user" && entry?.type !== "assistant") continue;
         const content = extractText(entry.message?.content);
-        if (content) turns.push({ role: entry.type, content: content.slice(0, MAX_CHARS) });
+        if (content)
+            turns.push({ role: entry.type, content: redactSecrets(content).slice(0, MAX_CHARS) });
     }
 
     return { turns: turns.slice(-MAX_TURNS), lastLine };

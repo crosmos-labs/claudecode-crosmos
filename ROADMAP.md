@@ -15,8 +15,9 @@ Deliberately minimal — prove the loop end-to-end, then iterate.
   `/plugin marketplace add … ` → `/plugin install crosmos`. Self-contained esbuild bundle at
   `plugin/scripts/crosmos.cjs` (SDK inlined; committed, so no `node_modules` on the user's machine).
 - **Backend:** SDK-direct in-process (`crosmos` SDK → REST). No MCP in the hot path.
-- **Auth:** `CROSMOS_API_KEY` env or `~/.crosmos/credentials.json` (shared with crosmos-mcp;
-  `base_url` honored from the creds file). `/crosmos:setup <key>` writes it.
+- **Auth:** out-of-band setup only — reads `~/.crosmos/credentials.json` (populated via
+  `npx @crosmos/crosmos-mcp setup` or the console; shared with crosmos-mcp, `base_url` honored) or
+  `CROSMOS_API_KEY` env. No in-product key entry — the key never enters the Claude session.
 - **Scoping:** single resolved + cached space (`CROSMOS_SPACE_ID` → `CROSMOS_SPACE_NAME` →
   first space). Env takes precedence over the cache. `project` attached as ingest `meta`.
 - **Recall (ambient):** one hook — `SessionStart` (`startup|resume`). One `search.hybrid`

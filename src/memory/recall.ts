@@ -1,11 +1,13 @@
 import { basename } from "node:path";
 import type Crosmos from "crosmos";
 import { debug } from "../lib/debug.js";
-import { gitBranch } from "../lib/git.js";
+import { gitBranch, recentCommitSubjects, repoId } from "../lib/git.js";
 import { resolveSpaceId } from "./space.js";
 
 const LIMIT = 6;
 const RECENCY_BIAS = 0.6;
+const MAX_MEMORY_CHARS = 500;
+const MAX_CONTEXT_CHARS = 3500;
 
 export async function recall(client: Crosmos, cwd: string): Promise<string> {
     const spaceId = await resolveSpaceId(client);
@@ -26,7 +28,9 @@ export async function recall(client: Crosmos, cwd: string): Promise<string> {
     debug("recall:", `query="${query}"`, `hits=${candidates?.length ?? 0}`);
     if (!candidates?.length) return "";
 
-    const lines = candidates.map((c) => `- ${c.content.trim()}`).join("\n");
+    const lines = capContext(
+        candidates.map((c) => `- ${truncate(c.content.trim(), MAX_MEMORY_CHARS)}`)
+    );
     return [
         "<crosmos-memory>",
         "Recalled context from past sessions. Reference it only when relevant — including indirect connections — but don't force it into your response or assume beyond what's stated.",
@@ -39,8 +43,15 @@ export async function recall(client: Crosmos, cwd: string): Promise<string> {
 function buildQuery(cwd: string): string {
     const project = basename(cwd);
     const topic = branchTopic(cwd);
-    const focus = topic ? ` ${topic}` : "";
-    return `recent work, decisions, and preferences for the ${project} project${focus}`;
+    const commits = recentCommitSubjects(cwd, 3).slice(0, 3);
+    const parts = [
+        "recent work, decisions, conventions, and preferences",
+        `${project} project`,
+        repoId(cwd),
+        topic,
+        ...commits,
+    ].filter(Boolean);
+    return parts.join(" ").slice(0, 500);
 }
 
 // Turn a feature-branch slug into query words (drop main/master, prefixes like
@@ -53,4 +64,21 @@ function branchTopic(cwd: string): string {
         .replace(/[-_/]+/g, " ")
         .trim();
     return /[a-z]{3,}/i.test(words) ? words : "";
+}
+
+function truncate(text: string, max: number): string {
+    if (text.length <= max) return text;
+    return `${text.slice(0, max - 15).trimEnd()}... [truncated]`;
+}
+
+function capContext(lines: string[]): string {
+    let out = "";
+    for (const line of lines) {
+        const next = out ? `${out}\n${line}` : line;
+        if (next.length > MAX_CONTEXT_CHARS) {
+            return `${out}\n- ... [more memories omitted]`.trim();
+        }
+        out = next;
+    }
+    return out;
 }
